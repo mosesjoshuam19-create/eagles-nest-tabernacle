@@ -1,6 +1,91 @@
 -- Run this migration against the project's Supabase database.
 -- All policies are recreated so the migration is safe to re-run.
 
+do $$
+begin
+  create type public.app_role as enum (
+    'admin',
+    'pastor',
+    'trustee',
+    'deacon',
+    'music_director',
+    'media_director',
+    'member'
+  );
+exception
+  when duplicate_object then null;
+end
+$$;
+
+create table if not exists public.user_roles (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  role public.app_role not null,
+  assigned_at timestamptz not null default now(),
+  assigned_by uuid references auth.users(id) on delete set null,
+  unique (user_id, role)
+);
+
+alter table public.user_roles enable row level security;
+
+drop policy if exists "Users can read their own roles" on public.user_roles;
+create policy "Users can read their own roles"
+  on public.user_roles for select
+  to authenticated
+  using (user_id = auth.uid());
+
+create table if not exists public.events (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  description text,
+  event_date timestamptz not null,
+  event_type text,
+  location text,
+  is_published boolean not null default false,
+  created_by uuid not null references auth.users(id) on delete restrict,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.media_content (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  description text,
+  media_type text not null,
+  file_url text,
+  thumbnail_url text,
+  duration numeric,
+  is_published boolean not null default false,
+  created_by uuid not null references auth.users(id) on delete restrict,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.announcements (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  content text not null,
+  publish_date timestamptz,
+  is_published boolean not null default false,
+  created_by uuid not null references auth.users(id) on delete restrict,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.archived_services (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  description text,
+  service_date date not null,
+  video_url text,
+  thumbnail_url text,
+  duration_seconds integer,
+  is_published boolean not null default false,
+  created_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create or replace function public.is_staff()
 returns boolean
 language sql

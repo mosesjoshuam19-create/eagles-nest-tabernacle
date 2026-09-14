@@ -18,6 +18,7 @@ Run the migration in
 `supabase/migrations/20260914130000_security_and_media.sql` using the Supabase
 SQL Editor or the Supabase CLI. It:
 
+- creates the roles and core content tables when they do not already exist
 - enables RLS on public content tables
 - allows anonymous visitors to read published content only
 - allows authenticated staff roles to manage content
