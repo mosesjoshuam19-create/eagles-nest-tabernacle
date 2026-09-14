@@ -104,6 +104,31 @@ create table if not exists public.leaders (
 
 alter table public.leaders alter column created_by drop not null;
 
+create table if not exists public.site_content (
+  id uuid primary key default gen_random_uuid(),
+  page_key text not null,
+  section_key text not null,
+  title text not null,
+  subtitle text,
+  body text,
+  image_url text,
+  link_url text,
+  sort_order integer not null default 0,
+  is_published boolean not null default true,
+  created_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (page_key, section_key)
+);
+
+insert into public.site_content (page_key, section_key, title, subtitle, body, sort_order)
+values
+  ('mission', 'header', 'Our Mission', 'Our calling and purpose', null, 1),
+  ('mission', 'great-commission', 'The Great Commission', null, 'Go into all the world and preach the Gospel to all creatures and baptize whosoever believes in the Name of the Lord, Jesus Christ, for the remission of their sin.', 2),
+  ('mission', 'purpose', 'Our Purpose', null, 'To fulfil our Mission, we together, as a Church, seek to accomplish the will of the Lord Jesus Christ as revealed in this last days through the fulfilment of the Ministry of the Prophet, Reverend William Marrion Branham, as we unite in Christian fellowship and love.', 3),
+  ('mission', 'message', 'The Message of the Hour', null, 'Through the ministry of Prophet William Marrion Branham, God has revealed His will for this end time generation. We are committed to following this divine revelation as we prepare for the second coming of Jesus Christ.', 4)
+on conflict (page_key, section_key) do nothing;
+
 insert into public.leaders (
   id, name, position, category, description, biography, responsibility, sort_order, is_published
 )
@@ -177,6 +202,7 @@ alter table public.media_content enable row level security;
 alter table public.announcements enable row level security;
 alter table public.archived_services enable row level security;
 alter table public.leaders enable row level security;
+alter table public.site_content enable row level security;
 
 drop policy if exists "Published events are public" on public.events;
 create policy "Published events are public"
@@ -243,6 +269,19 @@ create policy "Staff manage leaders"
   using (public.is_staff())
   with check (public.is_staff());
 
+drop policy if exists "Published site content is public" on public.site_content;
+create policy "Published site content is public"
+  on public.site_content for select
+  to anon, authenticated
+  using (coalesce(is_published, false) = true);
+
+drop policy if exists "Staff manage site content" on public.site_content;
+create policy "Staff manage site content"
+  on public.site_content for all
+  to authenticated
+  using (public.is_staff())
+  with check (public.is_staff());
+
 create index if not exists events_published_date_idx
   on public.events (is_published, event_date);
 create index if not exists media_content_published_type_idx
@@ -251,6 +290,8 @@ create index if not exists announcements_published_date_idx
   on public.announcements (is_published, publish_date desc);
 create index if not exists leaders_published_category_idx
   on public.leaders (is_published, category, sort_order);
+create index if not exists site_content_published_page_idx
+  on public.site_content (is_published, page_key, sort_order);
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -280,6 +321,11 @@ for each row execute function public.set_updated_at();
 drop trigger if exists leaders_set_updated_at on public.leaders;
 create trigger leaders_set_updated_at
 before update on public.leaders
+for each row execute function public.set_updated_at();
+
+drop trigger if exists site_content_set_updated_at on public.site_content;
+create trigger site_content_set_updated_at
+before update on public.site_content
 for each row execute function public.set_updated_at();
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

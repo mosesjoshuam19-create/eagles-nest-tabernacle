@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LeadershipManagementTab from "./LeadershipManagementTab";
+import SiteContentManagementTab from "./SiteContentManagementTab";
 
 type EventRecord = {
   id: string;
@@ -271,11 +272,12 @@ const ContentManagementTab = () => {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="events">
-          <TabsList className="grid w-full grid-cols-2 md:w-fit md:grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2 md:w-fit md:grid-cols-5">
             <TabsTrigger value="events"><Calendar className="mr-2 h-4 w-4" />Events</TabsTrigger>
             <TabsTrigger value="media"><Image className="mr-2 h-4 w-4" />Media</TabsTrigger>
             <TabsTrigger value="announcements"><Megaphone className="mr-2 h-4 w-4" />Announcements</TabsTrigger>
             <TabsTrigger value="leadership"><Pencil className="mr-2 h-4 w-4" />Leadership</TabsTrigger>
+            <TabsTrigger value="site-content"><Pencil className="mr-2 h-4 w-4" />Site content</TabsTrigger>
           </TabsList>
 
           <TabsContent value="events" className="mt-6 space-y-6">
@@ -348,6 +350,10 @@ const ContentManagementTab = () => {
 
           <TabsContent value="leadership" className="mt-6">
             <LeadershipManagementTab />
+          </TabsContent>
+
+          <TabsContent value="site-content" className="mt-6">
+            <SiteContentManagementTab />
           </TabsContent>
         </Tabs>
       </CardContent>
