@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
@@ -8,6 +9,7 @@ import EmptyMediaState from "@/components/media/EmptyMediaState";
 import MediaLoadingSkeleton from "@/components/media/MediaLoadingSkeleton";
 import PictureGallery from "@/components/media/PictureGallery";
 import { useMediaContent } from "@/hooks/useMediaContent";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface MediaItem {
   id: string;
@@ -22,6 +24,11 @@ const Pictures = () => {
   const { items: pictures, loading } = useMediaContent('picture');
   const { toast } = useToast();
   const { user } = useAuth();
+  const [selectedPicture, setSelectedPicture] = useState<MediaItem | null>(null);
+
+  const handleView = (picture: MediaItem) => {
+    setSelectedPicture(picture);
+  };
 
   const handleDownload = async (picture: MediaItem) => {
     if (!user) {
@@ -89,9 +96,29 @@ const Pictures = () => {
             message="Our photo gallery is being prepared. Check back soon for beautiful moments from our church family."
           />
         ) : (
-          <PictureGallery pictures={pictures} onDownload={handleDownload} />
+          <PictureGallery pictures={pictures} onView={handleView} onDownload={handleDownload} />
         )}
       </div>
+      <Dialog open={!!selectedPicture} onOpenChange={(open) => !open && setSelectedPicture(null)}>
+        <DialogContent className="max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>{selectedPicture?.title}</DialogTitle>
+          </DialogHeader>
+          {selectedPicture && (
+            <div className="flex max-h-[75vh] items-center justify-center overflow-auto rounded-lg bg-slate-950 p-2">
+              {selectedPicture.file_url || selectedPicture.thumbnail_url ? (
+                <img
+                  src={selectedPicture.file_url || selectedPicture.thumbnail_url || undefined}
+                  alt={selectedPicture.title}
+                  className="max-h-[70vh] max-w-full object-contain"
+                />
+              ) : (
+                <p className="p-12 text-center text-white">This picture does not have an image URL.</p>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
       <Footer />
     </div>
   );

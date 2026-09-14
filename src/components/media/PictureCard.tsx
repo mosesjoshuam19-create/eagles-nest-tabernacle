@@ -14,10 +14,11 @@ interface MediaItem {
 
 interface PictureCardProps {
   picture: MediaItem;
+  onView: (picture: MediaItem) => void;
   onDownload: (picture: MediaItem) => void;
 }
 
-const PictureCard = ({ picture, onDownload }: PictureCardProps) => {
+const PictureCard = ({ picture, onView, onDownload }: PictureCardProps) => {
   return (
     <div className="group">
       <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow">
@@ -37,6 +38,7 @@ const PictureCard = ({ picture, onDownload }: PictureCardProps) => {
               size="sm"
               variant="secondary"
               className="bg-white text-black hover:bg-gray-200"
+              onClick={() => onView(picture)}
             >
               <Eye className="w-4 h-4 mr-1" />
               View
