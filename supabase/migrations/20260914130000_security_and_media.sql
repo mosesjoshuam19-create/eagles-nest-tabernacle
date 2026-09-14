@@ -243,6 +243,45 @@ create policy "Staff manage leaders"
   using (public.is_staff())
   with check (public.is_staff());
 
+create index if not exists events_published_date_idx
+  on public.events (is_published, event_date);
+create index if not exists media_content_published_type_idx
+  on public.media_content (is_published, media_type, created_at desc);
+create index if not exists announcements_published_date_idx
+  on public.announcements (is_published, publish_date desc);
+create index if not exists leaders_published_category_idx
+  on public.leaders (is_published, category, sort_order);
+
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists events_set_updated_at on public.events;
+create trigger events_set_updated_at
+before update on public.events
+for each row execute function public.set_updated_at();
+
+drop trigger if exists media_content_set_updated_at on public.media_content;
+create trigger media_content_set_updated_at
+before update on public.media_content
+for each row execute function public.set_updated_at();
+
+drop trigger if exists announcements_set_updated_at on public.announcements;
+create trigger announcements_set_updated_at
+before update on public.announcements
+for each row execute function public.set_updated_at();
+
+drop trigger if exists leaders_set_updated_at on public.leaders;
+create trigger leaders_set_updated_at
+before update on public.leaders
+for each row execute function public.set_updated_at();
+
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
   'media',

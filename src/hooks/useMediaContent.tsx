@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,11 +17,7 @@ export const useMediaContent = (mediaType: string) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchMediaContent();
-  }, [mediaType]);
-
-  const fetchMediaContent = async () => {
+  const fetchMediaContent = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('media_content')
@@ -44,7 +40,11 @@ export const useMediaContent = (mediaType: string) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [mediaType, toast]);
+
+  useEffect(() => {
+    void fetchMediaContent();
+  }, [fetchMediaContent]);
 
   return {
     items,

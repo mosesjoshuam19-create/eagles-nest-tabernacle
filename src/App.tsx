@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/hooks/useAuth";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import NotFound from "./pages/NotFound";
+import AppErrorBoundary from "@/components/AppErrorBoundary";
 
 const Index = lazy(() => import("./pages/Index"));
 
@@ -56,16 +57,17 @@ const queryClient = new QueryClient({
 });
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="light" storageKey="etm-theme">
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <PWAInstallPrompt />
-          <BrowserRouter>
-            <Suspense fallback={<LoadingScreen />}>
-              <Routes>
+  <AppErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light" storageKey="etm-theme">
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <PWAInstallPrompt />
+            <BrowserRouter>
+              <Suspense fallback={<LoadingScreen />}>
+                <Routes>
                 <Route path="/" element={<Index />} />
 
                 <Route path="/about/our-church" element={<OurChurch />} />
@@ -95,13 +97,14 @@ const App = () => (
                 <Route path="/privacy" element={<Privacy />} />
 
                 <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+                </Routes>
+              </Suspense>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  </AppErrorBoundary>
 );
 
 export default App;

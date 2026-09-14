@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -19,11 +19,7 @@ export const useArchivedServices = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchArchivedServices();
-  }, []);
-
-  const fetchArchivedServices = async () => {
+  const fetchArchivedServices = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('archived_services')
@@ -45,7 +41,11 @@ export const useArchivedServices = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    void fetchArchivedServices();
+  }, [fetchArchivedServices]);
 
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
