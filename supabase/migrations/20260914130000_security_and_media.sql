@@ -86,6 +86,22 @@ create table if not exists public.archived_services (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.leaders (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  position text not null,
+  category text not null default 'ministers',
+  description text,
+  biography text not null,
+  responsibility text,
+  image_url text,
+  sort_order integer not null default 0,
+  is_published boolean not null default true,
+  created_by uuid not null references auth.users(id) on delete restrict,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create or replace function public.is_staff()
 returns boolean
 language sql
@@ -108,6 +124,7 @@ alter table public.events enable row level security;
 alter table public.media_content enable row level security;
 alter table public.announcements enable row level security;
 alter table public.archived_services enable row level security;
+alter table public.leaders enable row level security;
 
 drop policy if exists "Published events are public" on public.events;
 create policy "Published events are public"
@@ -157,6 +174,19 @@ create policy "Published archived services are public"
 drop policy if exists "Staff manage archived services" on public.archived_services;
 create policy "Staff manage archived services"
   on public.archived_services for all
+  to authenticated
+  using (public.is_staff())
+  with check (public.is_staff());
+
+drop policy if exists "Published leaders are public" on public.leaders;
+create policy "Published leaders are public"
+  on public.leaders for select
+  to anon, authenticated
+  using (coalesce(is_published, false) = true);
+
+drop policy if exists "Staff manage leaders" on public.leaders;
+create policy "Staff manage leaders"
+  on public.leaders for all
   to authenticated
   using (public.is_staff())
   with check (public.is_staff());

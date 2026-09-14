@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import LeadershipManagementTab from "./LeadershipManagementTab";
 
 type EventRecord = {
   id: string;
@@ -267,10 +268,11 @@ const ContentManagementTab = () => {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="events">
-          <TabsList className="grid w-full grid-cols-2 md:w-fit md:grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2 md:w-fit md:grid-cols-4">
             <TabsTrigger value="events"><Calendar className="mr-2 h-4 w-4" />Events</TabsTrigger>
             <TabsTrigger value="media"><Image className="mr-2 h-4 w-4" />Media</TabsTrigger>
             <TabsTrigger value="announcements"><Megaphone className="mr-2 h-4 w-4" />Announcements</TabsTrigger>
+            <TabsTrigger value="leadership"><Pencil className="mr-2 h-4 w-4" />Leadership</TabsTrigger>
           </TabsList>
 
           <TabsContent value="events" className="mt-6 space-y-6">
@@ -339,6 +341,10 @@ const ContentManagementTab = () => {
               ))}
               {announcements.length === 0 && <p className="py-8 text-center text-sm text-slate-500">No announcements yet.</p>}
             </div>
+          </TabsContent>
+
+          <TabsContent value="leadership" className="mt-6">
+            <LeadershipManagementTab />
           </TabsContent>
         </Tabs>
       </CardContent>

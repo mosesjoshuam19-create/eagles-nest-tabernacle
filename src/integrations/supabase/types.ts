@@ -284,6 +284,54 @@ export type Database = {
         }
         Relationships: []
       }
+      leaders: {
+        Row: {
+          biography: string
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_published: boolean
+          name: string
+          position: string
+          responsibility: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          biography: string
+          category?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_published?: boolean
+          name: string
+          position: string
+          responsibility?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          biography?: string
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_published?: boolean
+          name?: string
+          position?: string
+          responsibility?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       media_content: {
         Row: {
           created_at: string | null
