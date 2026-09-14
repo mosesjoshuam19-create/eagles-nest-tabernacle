@@ -1,0 +1,25 @@
+{
+  "name": "etm-server",
+  "version": "0.0.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "pg": "^8.11.0",
+    "helmet": "^6.0.1",
+    "compression": "^1.7.4",
+    "express-rate-limit": "^6.7.0",
+    "pino": "^8.12.0",
+    "pino-http": "^8.0.0",
+    "pino-pretty": "^9.1.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}

@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Lint, Typecheck & Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Lint repository
+        run: npm run lint
+
+      - name: Typecheck (TypeScript)
+        # Use the local typescript to ensure consistent behavior
+        run: npx tsc --noEmit
+
+      - name: Build frontend (Vite)
+        run: npm run build
+
+      - name: Install server dependencies (if present)
+        if: ${{ exists('server/package.json') }}
+        run: |
+          cd server
+          npm ci
+
+      - name: Run minimal server checks (health endpoints)
+        if: ${{ exists('server/package.json') }}
+        run: |
+          # Verify server starts and responds to /ping quickly in CI environment.
+          # We start it in the background and curl the /ping endpoint.
+          cd server
+          npm run start &> server.log &
+          SERVER_PID=$!
+          sleep 2
+          if curl -sSf http://localhost:4000/ping >/dev/null; then
+            echo "Server ping OK"
+          else
+            echo "Server did not respond to /ping"
+            cat server.log || true
+            kill $SERVER_PID || true
+            exit 1
+          fi
+          kill $SERVER_PID || true

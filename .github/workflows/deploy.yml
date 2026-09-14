@@ -1,0 +1,158 @@
+name: Deploy Static Site
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+
+concurrency:
+  group: deploy-static-site
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build (Vite)
+    runs-on: ubuntu-latest
+    outputs:
+      artifact-path: ${{ steps.upload.outputs.artifact-path }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+        # If lint is non-blocking in your project, you can remove or relax this step.
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+        continue-on-error: false
+
+      - name: Build
+        run: npm run build
+
+      - name: Archive build (for downstream deploy jobs)
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-dist
+          path: dist
+        id: upload
+
+  deploy_github_pages:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ always() }} # change to conditional if you don't always want to deploy to GH Pages
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: site-dist
+          path: dist
+
+      # Official pages deployment flow
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact for Pages
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        id: deploy-pages
+        uses: actions/deploy-pages@v1
+        # The Pages action uses the repo's GITHUB_TOKEN automatically for publishing.
+
+  deploy_netlify:
+    name: Deploy to Netlify (optional)
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ secrets.NETLIFY_AUTH_TOKEN != '' && secrets.NETLIFY_SITE_ID != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: site-dist
+          path: dist
+
+      - name: Install Netlify CLI
+        run: npm ci -g netlify-cli
+
+      - name: Deploy to Netlify (production)
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          # Deploy the built `dist` folder. This requires NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID
+          netlify deploy --dir=dist --site="$NETLIFY_SITE_ID" --prod --auth="$NETLIFY_AUTH_TOKEN"
+
+  deploy_vercel:
+    name: Deploy to Vercel (optional)
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ secrets.VERCEL_TOKEN != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: site-dist
+          path: dist
+
+      - name: Install Vercel CLI
+        run: npm ci -g vercel
+
+      - name: Deploy to Vercel (production)
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          # Optional: set VERCEL_ORG_ID and VERCEL_PROJECT_ID if needed
+        run: |
+          # Using the Vercel CLI to publish the dist directory.
+          # If you need to target a specific project/org, add --org and --project flags.
+          vercel --prod --token "$VERCEL_TOKEN" --confirm --cwd dist || true
+
+  notify:
+    name: Notify on success
+    needs:
+      - deploy_github_pages
+      - deploy_netlify
+      - deploy_vercel
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    steps:
+      - name: Deployment summary
+        run: |
+          echo "Deployment workflow completed."
+          echo "Check actions logs and your hosting provider for published site status."
+
+# Notes:
+# - This workflow builds the site (Vite) and provides three sample deploy targets:
+#   1) GitHub Pages (default, uses actions/deploy-pages)
+#   2) Netlify (optional, requires NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID secrets)
+#   3) Vercel (optional, requires VERCEL_TOKEN secret)
+#
+# - Add secrets in your repository settings:
+#   - NETLIFY_AUTH_TOKEN, NETLIFY_SITE_ID
+#   - VERCEL_TOKEN (and optionally VERCEL_ORG_ID, VERCEL_PROJECT_ID)
+#
+# - If you prefer a single provider, remove the other deploy jobs.
+# - For Netlify and Vercel, you can also use provider-specific official actions if desired.
+# - For subpath deployments or non-standard build outputs, update the `path` used in the artifact and deploy commands.
