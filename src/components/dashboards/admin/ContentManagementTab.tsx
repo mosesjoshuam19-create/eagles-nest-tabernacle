@@ -29,6 +29,14 @@ type MediaRecord = {
   is_published: boolean | null;
 };
 
+type AnnouncementRecord = {
+  id: string;
+  title: string;
+  content: string;
+  publish_date: string | null;
+  is_published: boolean | null;
+};
+
 const emptyEvent = {
   title: "",
   description: "",
@@ -38,13 +46,23 @@ const emptyEvent = {
   is_published: true,
 };
 
+const emptyAnnouncement = {
+  title: "",
+  content: "",
+  publish_date: "",
+  is_published: true,
+};
+
 const ContentManagementTab = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [media, setMedia] = useState<MediaRecord[]>([]);
+  const [announcements, setAnnouncements] = useState<AnnouncementRecord[]>([]);
   const [eventForm, setEventForm] = useState(emptyEvent);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [announcementForm, setAnnouncementForm] = useState(emptyAnnouncement);
+  const [editingAnnouncementId, setEditingAnnouncementId] = useState<string | null>(null);
   const [mediaForm, setMediaForm] = useState({
     title: "",
     description: "",
@@ -58,17 +76,19 @@ const ContentManagementTab = () => {
   const [saving, setSaving] = useState(false);
 
   const loadContent = async () => {
-    const [eventsResult, mediaResult] = await Promise.all([
+    const [eventsResult, mediaResult, announcementsResult] = await Promise.all([
       supabase.from("events").select("*").order("event_date", { ascending: true }),
       supabase.from("media_content").select("*").order("created_at", { ascending: false }),
+      supabase.from("announcements").select("*").order("created_at", { ascending: false }),
     ]);
 
-    if (eventsResult.error || mediaResult.error) {
-      throw eventsResult.error || mediaResult.error;
+    if (eventsResult.error || mediaResult.error || announcementsResult.error) {
+      throw eventsResult.error || mediaResult.error || announcementsResult.error;
     }
 
     setEvents((eventsResult.data || []) as EventRecord[]);
     setMedia((mediaResult.data || []) as MediaRecord[]);
+    setAnnouncements((announcementsResult.data || []) as AnnouncementRecord[]);
   };
 
   useEffect(() => {
@@ -199,6 +219,44 @@ const ContentManagementTab = () => {
     toast({ title: "Media deleted" });
   };
 
+  const saveAnnouncement = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!user || !announcementForm.title.trim() || !announcementForm.content.trim()) return;
+    setSaving(true);
+
+    const payload = {
+      title: announcementForm.title.trim(),
+      content: announcementForm.content.trim(),
+      publish_date: announcementForm.publish_date || null,
+      is_published: announcementForm.is_published,
+      created_by: user.id,
+    };
+    const result = editingAnnouncementId
+      ? await supabase.from("announcements").update(payload).eq("id", editingAnnouncementId)
+      : await supabase.from("announcements").insert(payload);
+
+    setSaving(false);
+    if (result.error) {
+      toast({ title: "Announcement not saved", description: result.error.message, variant: "destructive" });
+      return;
+    }
+
+    setAnnouncementForm(emptyAnnouncement);
+    setEditingAnnouncementId(null);
+    await loadContent();
+    toast({ title: editingAnnouncementId ? "Announcement updated" : "Announcement published" });
+  };
+
+  const deleteAnnouncement = async (id: string) => {
+    const { error } = await supabase.from("announcements").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Announcement not deleted", description: error.message, variant: "destructive" });
+      return;
+    }
+    setAnnouncements((current) => current.filter((announcement) => announcement.id !== id));
+    toast({ title: "Announcement deleted" });
+  };
+
   return (
     <Card className="border-slate-200 shadow-sm">
       <CardHeader>
@@ -262,8 +320,25 @@ const ContentManagementTab = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="announcements" className="mt-6 rounded-lg border border-dashed p-6 text-center text-sm text-slate-500">
-            Announcement management can be enabled once the public announcement section is wired to the existing announcements table.
+          <TabsContent value="announcements" className="mt-6 space-y-6">
+            <form onSubmit={saveAnnouncement} className="grid gap-3 rounded-lg border bg-slate-50 p-4">
+              <Input placeholder="Announcement title" value={announcementForm.title} onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })} required />
+              <Textarea placeholder="Announcement content" value={announcementForm.content} onChange={(e) => setAnnouncementForm({ ...announcementForm, content: e.target.value })} required />
+              <Input type="datetime-local" value={announcementForm.publish_date} onChange={(e) => setAnnouncementForm({ ...announcementForm, publish_date: e.target.value })} />
+              <Button type="submit" disabled={saving} className="w-fit"><Megaphone className="mr-2 h-4 w-4" />{editingAnnouncementId ? "Update announcement" : "Publish announcement"}</Button>
+            </form>
+            <div className="space-y-2">
+              {announcements.map((announcement) => (
+                <div key={announcement.id} className="flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0"><p className="font-semibold">{announcement.title}</p><p className="text-sm text-slate-500">{announcement.content}</p>{announcement.publish_date && <p className="text-xs text-slate-400">{new Date(announcement.publish_date).toLocaleString()}</p>}</div>
+                  <div className="flex shrink-0 gap-2">
+                    <Button size="sm" variant="outline" onClick={() => { setEditingAnnouncementId(announcement.id); setAnnouncementForm({ title: announcement.title, content: announcement.content, publish_date: announcement.publish_date ? announcement.publish_date.slice(0, 16) : "", is_published: announcement.is_published ?? true }); }}><Pencil className="mr-2 h-4 w-4" />Edit</Button>
+                    <Button size="sm" variant="destructive" onClick={() => deleteAnnouncement(announcement.id)}><Trash2 className="mr-2 h-4 w-4" />Delete</Button>
+                  </div>
+                </div>
+              ))}
+              {announcements.length === 0 && <p className="py-8 text-center text-sm text-slate-500">No announcements yet.</p>}
+            </div>
           </TabsContent>
         </Tabs>
       </CardContent>
