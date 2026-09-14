@@ -111,6 +111,7 @@ const LeadershipManagementTab = () => {
   };
 
   const deleteLeader = async (id: string) => {
+    if (!window.confirm("Delete this leadership profile? This action cannot be undone.")) return;
     const { error } = await supabase.from("leaders").delete().eq("id", id);
     if (error) {
       toast({ title: "Leader not deleted", description: error.message, variant: "destructive" });

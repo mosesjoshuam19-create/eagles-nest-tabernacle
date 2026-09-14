@@ -130,6 +130,7 @@ const ContentManagementTab = () => {
   };
 
   const deleteEvent = async (id: string) => {
+    if (!window.confirm("Delete this event? This action cannot be undone.")) return;
     const { error } = await supabase.from("events").delete().eq("id", id);
     if (error) {
       toast({ title: "Event not deleted", description: error.message, variant: "destructive" });
@@ -211,6 +212,7 @@ const ContentManagementTab = () => {
   };
 
   const deleteMedia = async (id: string) => {
+    if (!window.confirm("Delete this media item? This action cannot be undone.")) return;
     const { error } = await supabase.from("media_content").delete().eq("id", id);
     if (error) {
       toast({ title: "Media not deleted", description: error.message, variant: "destructive" });
@@ -249,6 +251,7 @@ const ContentManagementTab = () => {
   };
 
   const deleteAnnouncement = async (id: string) => {
+    if (!window.confirm("Delete this announcement? This action cannot be undone.")) return;
     const { error } = await supabase.from("announcements").delete().eq("id", id);
     if (error) {
       toast({ title: "Announcement not deleted", description: error.message, variant: "destructive" });

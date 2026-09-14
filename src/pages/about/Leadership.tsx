@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import BrandPlaceholder from "@/components/BrandPlaceholder";
@@ -28,9 +28,11 @@ const Leadership = () => {
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [selectedLeader, setSelectedLeader] = useState<Leader | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
-  useEffect(() => {
-    const loadLeaders = async () => {
+  const loadLeaders = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
       const { data, error } = await supabase
         .from("leaders")
         .select("id, name, position, category, description, biography, responsibility, image_url")
@@ -40,14 +42,16 @@ const Leadership = () => {
 
       if (error) {
         console.error("Error loading leadership:", error);
+        setLoadError(true);
       } else {
         setLeaders((data || []) as Leader[]);
       }
       setLoading(false);
-    };
-
-    loadLeaders();
   }, []);
+
+  useEffect(() => {
+    void loadLeaders();
+  }, [loadLeaders]);
 
   const groupedLeaders = Object.entries(
     leaders.reduce<Record<string, Leader[]>>((groups, leader) => {
@@ -66,7 +70,17 @@ const Leadership = () => {
         </div>
 
         {loading && <p className="py-12 text-center text-gray-500">Loading leadership...</p>}
-        {!loading && leaders.length === 0 && (
+        {!loading && loadError && (
+          <Card className="mx-auto max-w-xl">
+            <CardContent className="py-8 text-center">
+              <p className="text-gray-600">Leadership information could not be loaded.</p>
+              <button type="button" onClick={() => void loadLeaders()} className="mt-4 rounded-md bg-blue-700 px-4 py-2 font-medium text-white hover:bg-blue-800">
+                Try again
+              </button>
+            </CardContent>
+          </Card>
+        )}
+        {!loading && !loadError && leaders.length === 0 && (
           <Card className="mx-auto max-w-xl">
             <CardContent className="py-12 text-center text-gray-500">
               Leadership information will be published here soon.
